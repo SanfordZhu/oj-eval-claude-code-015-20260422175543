@@ -5,7 +5,6 @@
 #include <vector>
 #include <cstdint>
 #include <algorithm>
-#include <filesystem>
 
 using namespace std;
 
@@ -103,7 +102,10 @@ int main() {
                 while (current != NULL_OFFSET) {
                     Node node;
                     data_file.seekg(current);
-                    data_file.read(reinterpret_cast<char*>(&node), sizeof(Node));
+                    if (!data_file.read(reinterpret_cast<char*>(&node), sizeof(Node))) {
+                        // Read failed, break to avoid undefined behavior
+                        break;
+                    }
 
                     if (node.value == value) {
                         found = true;
@@ -131,10 +133,11 @@ int main() {
                         if (prev != NULL_OFFSET) {
                             Node last_node;
                             data_file.seekg(prev);
-                            data_file.read(reinterpret_cast<char*>(&last_node), sizeof(Node));
-                            last_node.next = new_offset;
-                            data_file.seekp(prev);
-                            data_file.write(reinterpret_cast<char*>(&last_node), sizeof(Node));
+                            if (data_file.read(reinterpret_cast<char*>(&last_node), sizeof(Node))) {
+                                last_node.next = new_offset;
+                                data_file.seekp(prev);
+                                data_file.write(reinterpret_cast<char*>(&last_node), sizeof(Node));
+                            }
                         }
                     } else if (prev_offset == NULL_OFFSET) {
                         // Insert at head
@@ -143,10 +146,11 @@ int main() {
                         // Insert in middle
                         Node prev_node;
                         data_file.seekg(prev_offset);
-                        data_file.read(reinterpret_cast<char*>(&prev_node), sizeof(Node));
-                        prev_node.next = new_offset;
-                        data_file.seekp(prev_offset);
-                        data_file.write(reinterpret_cast<char*>(&prev_node), sizeof(Node));
+                        if (data_file.read(reinterpret_cast<char*>(&prev_node), sizeof(Node))) {
+                            prev_node.next = new_offset;
+                            data_file.seekp(prev_offset);
+                            data_file.write(reinterpret_cast<char*>(&prev_node), sizeof(Node));
+                        }
                     }
                 }
             }
@@ -169,7 +173,10 @@ int main() {
             while (current != NULL_OFFSET) {
                 Node node;
                 data_file.seekg(current);
-                data_file.read(reinterpret_cast<char*>(&node), sizeof(Node));
+                if (!data_file.read(reinterpret_cast<char*>(&node), sizeof(Node))) {
+                    // Read failed, break to avoid undefined behavior
+                    break;
+                }
 
                 if (node.value == value) {
                     found = true;
@@ -180,10 +187,11 @@ int main() {
                         // Delete middle/end
                         Node prev_node;
                         data_file.seekg(prev);
-                        data_file.read(reinterpret_cast<char*>(&prev_node), sizeof(Node));
-                        prev_node.next = node.next;
-                        data_file.seekp(prev);
-                        data_file.write(reinterpret_cast<char*>(&prev_node), sizeof(Node));
+                        if (data_file.read(reinterpret_cast<char*>(&prev_node), sizeof(Node))) {
+                            prev_node.next = node.next;
+                            data_file.seekp(prev);
+                            data_file.write(reinterpret_cast<char*>(&prev_node), sizeof(Node));
+                        }
                     }
                     break;
                 }
@@ -219,7 +227,10 @@ int main() {
             while (current != NULL_OFFSET) {
                 Node node;
                 data_file.seekg(current);
-                data_file.read(reinterpret_cast<char*>(&node), sizeof(Node));
+                if (!data_file.read(reinterpret_cast<char*>(&node), sizeof(Node))) {
+                    // Read failed, break to avoid undefined behavior
+                    break;
+                }
                 values.push_back(node.value);
                 current = node.next;
             }
