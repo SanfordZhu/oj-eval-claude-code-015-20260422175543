@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdint>
 #include <algorithm>
+#include <filesystem>
 
 using namespace std;
 
@@ -17,29 +18,52 @@ struct Node {
     uint64_t next;
 };
 
+bool file_exists(const string& filename) {
+    ifstream f(filename);
+    return f.good();
+}
+
+void clear_files() {
+    remove(DATA_FILE.c_str());
+    remove(INDEX_FILE.c_str());
+}
+
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
+    // Check file consistency - both files must exist together
+    bool data_exists = file_exists(DATA_FILE);
+    bool index_exists = file_exists(INDEX_FILE);
+
+    if (data_exists != index_exists) {
+        // Files are inconsistent, clear both
+        clear_files();
+        data_exists = false;
+        index_exists = false;
+    }
+
     unordered_map<string, uint64_t> index_map;
 
     // Load index file if exists
-    ifstream index_in(INDEX_FILE, ios::binary);
-    if (index_in.is_open()) {
-        string key;
-        key.resize(64);
-        uint64_t offset;
-        while (index_in.read(&key[0], 64)) {
-            if (index_in.read(reinterpret_cast<char*>(&offset), sizeof(offset))) {
-                // Trim null characters from key
-                size_t len = key.find('\0');
-                if (len != string::npos) {
-                    key = key.substr(0, len);
+    if (index_exists) {
+        ifstream index_in(INDEX_FILE, ios::binary);
+        if (index_in.is_open()) {
+            string key;
+            key.resize(64);
+            uint64_t offset;
+            while (index_in.read(&key[0], 64)) {
+                if (index_in.read(reinterpret_cast<char*>(&offset), sizeof(offset))) {
+                    // Trim null characters from key
+                    size_t len = key.find('\0');
+                    if (len != string::npos) {
+                        key = key.substr(0, len);
+                    }
+                    index_map[key] = offset;
                 }
-                index_map[key] = offset;
             }
+            index_in.close();
         }
-        index_in.close();
     }
 
     int n;
@@ -184,6 +208,11 @@ int main() {
             }
 
             ifstream data_file(DATA_FILE, ios::binary);
+            if (!data_file.is_open()) {
+                cout << "null\n";
+                continue;
+            }
+
             uint64_t current = index_map[index];
             vector<int> values;
 
